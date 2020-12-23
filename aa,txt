@@ -1,0 +1,10 @@
+def normalize(data_x):
+    for i in range(len(data_x)):
+        data_x[i] = (data_x[i] - data_x[i].min()) / (data_x.max() - data_x.min())
+    return data_x
+
+
+def to_normalize(x_data):
+    for i in range(0, len(x_data)):
+        x_data[i] = mstats.zscore(x_data)
+    return x_data

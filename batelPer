@@ -1,0 +1,120 @@
+import sys
+import numpy as np
+import random
+import numpy.core.defchararray as np_r
+from scipy.stats import mstats
+
+
+#normalize the vector
+def norm(vec):
+    norm = np.linalg.norm(vec)
+    if norm == 0:
+        return vec
+    return np.divide(vec, norm)
+
+
+# testing for algo
+def test(x, y, w, name):
+    M = 0
+    for j in range(0, len(y)):
+        y_hat = np.argmax(np.dot(w, x[j]))
+        if y[j] != y_hat:
+            M = M + 1
+    print(name, "err = ", float(M) / len(x))
+
+
+# the first algorithm - perceptron
+def perceptron(data_x, data_y):
+    eta = 0.1
+    size = len(data_x[0])
+    W = np.zeros((3, size))
+    for j in range(100):
+        c = list(zip(data_x, data_y))
+        #random.shuffle(c)
+        #data_x, data_y = zip(*c)
+        x1 = norm(data_x)
+        for x1, y1 in zip(data_x, data_y):
+            y_hat = np.argmax(np.dot(W, x1))
+            if y_hat != y1:
+                W[int(y1), :] = W[int(y1), :] + eta * x1
+                W[int(y_hat), :] = np.subtract(W[int(y_hat), :], np.multiply(eta, x1))
+        if j > 50:
+            eta = eta/100
+    return W
+
+
+def passive_aggressive(x_data_pa, y_data_pa):
+    weight = 0
+    counter = 0
+    w_pa = np.zeros((3, 8))
+    for i in range(10):
+        for x, y in zip(x_data_pa, y_data_pa):
+            # predict
+            y_hat = np.argmax(np.dot(w_pa, x))
+            # update
+            if y != y_hat:
+                loss = max(0, 1 - np.dot(w_pa[y, :], x) + np.dot(w_pa[y_hat, :], x))
+                divide = (np.power(np.linalg.norm(x, ord=2), 2) * 2)
+                if divide != 0:
+                    tau = loss / divide
+                    w_pa[y, :] += tau * x
+                    w_pa[y_hat, :] -= tau * x
+                    counter += 1
+                    weight += w_pa
+    if counter!= 0:
+         w_pa = weight / counter
+    return w_pa
+
+
+def svm(data_x, data_y):
+    eta = 0.001
+    lamda = 0.1
+    W = np.zeros((3, len(data_x[0])))
+    # normalize data
+    for j in range(30):
+        c = list(zip(data_x, data_y))
+        #random.shuffle(c)
+        for x, y in zip(data_x, data_y):
+            x = norm(x)
+            y_hat = np.argmax(np.dot(W, x))
+            if y_hat != y:
+                W[int(y), :] = (1 - eta * lamda) * W[int(y), :] + eta * x
+                W[int(y_hat), :] = (1 - eta * lamda) * W[int(y_hat), :] - eta * x
+                # self._W=(1-self._eta*lamda)*self._W
+        if (j > 10):
+            eta = eta / 100
+            lamda = lamda / 100
+    return W
+
+
+if _name_ == "_main_":
+    data_x = np.genfromtxt(sys.argv[1], dtype="str", delimiter=",")
+    data_x = np_r.replace(data_x, 'M', '0')
+    data_x = np_r.replace(data_x, 'F', '1')
+    data_x = np_r.replace(data_x, 'I', '2')
+
+    data_x = data_x.astype(np.float)
+
+    data_y = np.genfromtxt(sys.argv[2], dtype="int", delimiter=",\n")
+
+    # shuffle
+    zipM = list(zip(data_x, data_y))
+    random.shuffle(zipM)
+    data_x, data_y = zip(*zipM)
+    # splits into training and test set
+    sizeMatrix = int(len(data_x) / 6)
+    training_x = data_x[sizeMatrix:]
+    test_x = data_x[0: sizeMatrix]
+    training_y = data_y[sizeMatrix:]
+    test_y = data_y[0:sizeMatrix]
+    # shuffle the training set (again)
+    zipM = list(zip(training_x, training_y))
+    #random.shuffle(zipM)
+    training_x, training_y = zip(*zipM)
+
+    w_perceptron = perceptron(training_x, training_y)
+    test(test_x, test_y, w_perceptron, "perceptron")
+    w_pa = passive_aggressive(training_x, training_y)
+    test(test_x, test_y, w_pa, "passive agressive")
+    w_svm = svm(training_x, training_y)
+    test(test_x, test_y, w_svm, "SVM")
